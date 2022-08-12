@@ -37,6 +37,8 @@ inspect(docs)
 
 The `readLines` function reads text from a connection (a url, in this case). It is necessary to pass a Source object to the `Corpus` function from the `tm` package to generate a corpus, and thus we will pass the character vector `text` first through `VectorSource` and then through `Corpus`, which is assigned to `docs` and holds each document as well as some associated metadata. 
 
+## Removing Words/Symbols
+
 ```{r}
 toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
 docs <- tm_map(docs, toSpace, "/")
@@ -59,6 +61,8 @@ docs <- tm_map(docs, stripWhitespace)
 
 The above changes applied by the `tm_map` function are self-explanatory. The first converts the entire corpus to lower case, the second removes instances of numbers, the third removes instances of punctuation, and the last removes any superfluous instances of white space beyond one character.
 
+## Removing Stop Words and Stemming
+
 ```{r}
 stopwords("en")
 
@@ -76,6 +80,8 @@ The above changes applied by the `tm_map` function require some further explanat
 
 Next, I demonstrate stemming, or the process of cleaning words to remove them of their superfluous endings, which is for the purpose of reducing the variety of words included in the corpus. For example: "difficulty" and "difficulties" share the same meaning but different endings. Stemming chops the endings off to standardize this word as "difficulti."
 
+## Term-Document Matrix
+
 ```{r}
 TermDocumentMatrix(docs)
 dtm <- TermDocumentMatrix(docs)
@@ -92,6 +98,8 @@ The `TermDocumentMatrix` function converts the `docs` vector into a matrix where
 
 `TermDocumentMatrix` holds various metadata, so my next step is to convert `dtm` to a simple matrix using the `as.matrix` function to view rows of unique words, columns of documents, and values of occurrences. Each row can be summed and then sorted for a descending count of total occurrences of each word in the corpus, which is then converted to a dataframe to name the respective columns.
 
+## Visualizing Most Common Words
+
 ```{r}
 set.seed(1234)
 wordcloud(words = d$word, freq = d$freq, min.freq = 1,
@@ -102,6 +110,8 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1,
 The `wordcloud` function accepts character vectors of words and associated frequencies to plot most frequently occurring words with larger fonts and less frequently occurring words with smaller fonts. Customization can be applied to control the proportion of words with 90 degree rotation (`rot.per`), the color palette (`colors`), the ordering (`random.order`), and more. 
 
 I have opted to use random ordering and a pastel color set to emphasize the enthusiastic, aspirational qualities of Martin Luther King Jr.'s original speech.
+
+## More Text Mining Methods
 
 ```{r}
 findFreqTerms(dtm, lowfreq = 4)

@@ -1,13 +1,24 @@
 Module 5 Technique Practice
 ================
 Justin Ehringhaus
-Last edited August 12, 2022 at 12:27
+Last edited August 12, 2022 at 12:33
 
 -   <a href="#importing-packages" id="toc-importing-packages">Importing
     Packages</a>
 -   <a href="#reading-and-loading-the-text-to-mine"
     id="toc-reading-and-loading-the-text-to-mine">Reading and Loading the
     Text to Mine</a>
+-   <a href="#removing-wordssymbols" id="toc-removing-wordssymbols">Removing
+    Words/Symbols</a>
+-   <a href="#removing-stop-words-and-stemming"
+    id="toc-removing-stop-words-and-stemming">Removing Stop Words and
+    Stemming</a>
+-   <a href="#term-document-matrix"
+    id="toc-term-document-matrix">Term-Document Matrix</a>
+-   <a href="#visualizing-most-common-words"
+    id="toc-visualizing-most-common-words">Visualizing Most Common Words</a>
+-   <a href="#more-text-mining-methods"
+    id="toc-more-text-mining-methods">More Text Mining Methods</a>
 
 ## Importing Packages
 
@@ -89,6 +100,8 @@ character vector `text` first through `VectorSource` and then through
 `Corpus`, which is assigned to `docs` and holds each document as well as
 some associated metadata.
 
+## Removing Words/Symbols
+
 ``` r
 toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
 docs <- tm_map(docs, toSpace, "/")
@@ -119,6 +132,8 @@ The first converts the entire corpus to lower case, the second removes
 instances of numbers, the third removes instances of punctuation, and
 the last removes any superfluous instances of white space beyond one
 character.
+
+## Removing Stop Words and Stemming
 
 ``` r
 stopwords("en")
@@ -181,6 +196,8 @@ them of their superfluous endings, which is for the purpose of reducing
 the variety of words included in the corpus. For example: “difficulty”
 and “difficulties” share the same meaning but different endings.
 Stemming chops the endings off to standardize this word as “difficulti.”
+
+## Term-Document Matrix
 
 ``` r
 TermDocumentMatrix(docs)
@@ -248,6 +265,8 @@ Each row can be summed and then sorted for a descending count of total
 occurrences of each word in the corpus, which is then converted to a
 dataframe to name the respective columns.
 
+## Visualizing Most Common Words
+
 ``` r
 set.seed(1234)
 wordcloud(words = d$word, freq = d$freq, min.freq = 1,
@@ -267,6 +286,8 @@ degree rotation (`rot.per`), the color palette (`colors`), the ordering
 I have opted to use random ordering and a pastel color set to emphasize
 the enthusiastic, aspirational qualities of Martin Luther King Jr.’s
 original speech.
+
+## More Text Mining Methods
 
 ``` r
 findFreqTerms(dtm, lowfreq = 4)
