@@ -10,7 +10,7 @@ nocite: '@*'
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
 ## Importing Packages
@@ -21,65 +21,129 @@ p_load(tm)
 p_load(SnowballC)
 p_load(wordcloud)
 p_load(RColorBrewer)
+p_load(tidyverse)
 ```
 
+## Reading and Loading the Text to Mine
 
 ```{r}
-#text <- readLines(file.choose())
-filePath <- "http://www.sthda.com/sthda/RDoc/example-files/martin-luther-king-i-have-a-dream-speech.txt"
+filePath <- url("http://www.sthda.com/sthda/RDoc/example-files/martin-luther-king-i-have-a-dream-speech.txt")
 text <- readLines(filePath)
-
 
 # Load the data as a corpus
 docs <- Corpus(VectorSource(text))
-
-
 inspect(docs)
+```
 
+The `readLines` function reads text from a connection (a url, in this case). It is necessary to pass a Source object to the `Corpus` function from the `tm` package to generate a corpus, and thus we will pass the character vector `text` first through `VectorSource` and then through `Corpus`, which is assigned to `docs` and holds each document as well as some associated metadata. 
+
+```{r}
 toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
 docs <- tm_map(docs, toSpace, "/")
 docs <- tm_map(docs, toSpace, "@")
 docs <- tm_map(docs, toSpace, "\\|")
+```
 
+The custom `toSpace` function above replaces the characters specified in the `pattern` parameter with a space. The above code examines and removes all instances of slashes and at-marks. This function can be useful to make purposeful deletions when, for instance, the process of lemmitization and stemming fails to remove a certain word or occurrence of a character.
 
+```{r}
 # Convert the text to lower case
 docs <- tm_map(docs, content_transformer(tolower))
 # Remove numbers
 docs <- tm_map(docs, removeNumbers)
-# Remove english common stopwords
-docs <- tm_map(docs, removeWords, stopwords("english"))
-# Remove your own stop word
-# specify your stopwords as a character vector
-docs <- tm_map(docs, removeWords, c("blabla1", "blabla2")) 
 # Remove punctuations
 docs <- tm_map(docs, removePunctuation)
 # Eliminate extra white spaces
 docs <- tm_map(docs, stripWhitespace)
+```
+
+The above changes applied by the `tm_map` function are self-explanatory. The first converts the entire corpus to lower case, the second removes instances of numbers, the third removes instances of punctuation, and the last removes any superfluous instances of white space beyond one character.
+
+```{r}
+stopwords("en")
+
+# Remove common English stopwords
+docs <- tm_map(docs, removeWords, stopwords("english"))
+
+# Remove your own stop word
+docs <- tm_map(docs, removeWords, c("howdy"))
+
 # Text stemming
-# docs <- tm_map(docs, stemDocument)
+docs <- tm_map(docs, stemDocument)
+```
 
+The above changes applied by the `tm_map` function require some further explanation. Stop words are words carrying little information. The first snippet of code above shows a full list of English stop words, each of which has been found not greatly alter the meaning of a document.
 
+Next, I demonstrate stemming, or the process of cleaning words to remove them of their superfluous endings, which is for the purpose of reducing the variety of words included in the corpus. For example: "difficulty" and "difficulties" share the same meaning but different endings. Stemming chops the endings off to standardize this word as "difficulti."
+
+```{r}
+TermDocumentMatrix(docs)
 dtm <- TermDocumentMatrix(docs)
+# a glimpse at the matrix
+inspect(dtm[1:5, 1:5])
+
 m <- as.matrix(dtm)
-v <- sort(rowSums(m),decreasing=TRUE)
-d <- data.frame(word = names(v),freq=v)
+v <- sort(rowSums(m), decreasing=TRUE)
+d <- data.frame(word = names(v), freq = v)
 head(d, 10)
+```
 
+The `TermDocumentMatrix` function converts the `docs` vector into a matrix where each word is compared to each document and counts of whether the word is contained in each document are tabulated. This process facilitates further mathematical operations such as finding the total number of occurrences of each word in the corpus. Sparsity measures the proportion of elements in the matrix that are assigned a zero versus those assigned a value. Thus, we can see the overall sparsity of `dtm` is 96% whereas the sparsity of the first five terms in `dtm` is 76%.
 
+`TermDocumentMatrix` holds various metadata, so my next step is to convert `dtm` to a simple matrix using the `as.matrix` function to view rows of unique words, columns of documents, and values of occurrences. Each row can be summed and then sorted for a descending count of total occurrences of each word in the corpus, which is then converted to a dataframe to name the respective columns.
+
+```{r}
 set.seed(1234)
 wordcloud(words = d$word, freq = d$freq, min.freq = 1,
-          max.words=200, random.order=FALSE, rot.per=0.35, 
-          colors=brewer.pal(8, "Dark2"))
+          max.words = 200, random.order = TRUE, rot.per=0.35, 
+          colors = brewer.pal(8, "Pastel2"))
+```
 
+The `wordcloud` function accepts character vectors of words and associated frequencies to plot most frequently occurring words with larger fonts and less frequently occurring words with smaller fonts. Customization can be applied to control the proportion of words with 90 degree rotation (`rot.per`), the color palette (`colors`), the ordering (`random.order`), and more. 
+
+I have opted to use random ordering and a pastel color set to emphasize the enthusiastic, aspirational qualities of Martin Luther King Jr.'s original speech.
+
+```{r}
 findFreqTerms(dtm, lowfreq = 4)
+```
 
-findAssocs(dtm, terms = "freedom", corlimit = 0.3)
+`findFreqTerms` is self-explanatory: it finds frequent terms in a corpus given a term-document matrix. 
 
-head(d, 10)
+```{r}
+d %>% filter(freq >= 4)
+```
 
+We could, however, just as easily use tidyverse functions such as `filter` to return values in the dataframe based on any condition.
 
+```{r}
+findAssocs(dtm, terms = c("dream", "freedom", "togeth"), corlimit = 0.7)
+```
+
+`findAssocs` is a more interesting: it finds associations between words in a corpus given a term-document matrix. The closer to 1 the stronger the association, the closer to 0 the weaker the association. `corlimit` provides a way to filter more weakly associated words. In the above snippet, only words with strong associations (>= 0.7) are included.
+
+```{r}
 barplot(d[1:10,]$freq, las = 2, names.arg = d[1:10,]$word,
         col ="lightblue", main ="Most frequent words",
         ylab = "Word frequencies")
 ```
+
+Besides the `tm` package, there are many other packages for text mining such as `tidytext` and its very useful `unnest_tokens` function for flattening a dataframe into one-token-per-row (tokenization). This function also removes all punctuation and converts all words to lowercase. The `anti_join` function can be used in conjunction to remove instances of `stop_words`, which is built into the `tidytext` package. Piping operators are supported for easy filtering, mutating, etc. The `ggplot` package is another option for visualizing the results, as shown below.
+
+```{r}
+p_load(tidytext)
+d <- 
+  tibble(txt = text) %>% 
+  unnest_tokens(word, txt) %>%
+  anti_join(stop_words) %>% 
+  count(word, sort = TRUE) %>% 
+  filter(n >= 4) %>% 
+  mutate(word = reorder(word, n))
+
+d %>% 
+  ggplot +
+  aes(n, word) +
+  geom_col()
+```
+
+We can see this version is slightly different in comparison to that produced using the `tm` package. For example, the word "will" had been removed as it was considered to be a stop word in tidytext. This may, or may not, be desirable, as "will" can have different meanings depending on the context, and perhaps the "will" within the speech here is used to indicate "willpower."
 
